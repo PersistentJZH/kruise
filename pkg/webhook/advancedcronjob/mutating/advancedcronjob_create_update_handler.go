@@ -25,6 +25,7 @@ import (
 
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/openkruise/kruise/apis/apps/defaults"
@@ -50,6 +51,8 @@ var _ admission.Handler = &AdvancedCronJobCreateUpdateHandler{}
 
 // Handle handles admission requests.
 func (h *AdvancedCronJobCreateUpdateHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
+	klog.Info("Handle AdvancedCronJob Mutating", "version", req.AdmissionRequest.Resource.Version)
+
 	obj := &appsv1beta1.AdvancedCronJob{}
 	var objv1alpha1 *appsv1alpha1.AdvancedCronJob
 

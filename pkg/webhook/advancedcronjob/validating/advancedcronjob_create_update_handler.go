@@ -32,6 +32,7 @@ import (
 	genericvalidation "k8s.io/apimachinery/pkg/api/validation"
 	validationutil "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/apis/core"
 	corev1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	apivalidation "k8s.io/kubernetes/pkg/apis/core/validation"
@@ -242,6 +243,8 @@ var _ admission.Handler = &AdvancedCronJobCreateUpdateHandler{}
 
 // Handle handles admission requests.
 func (h *AdvancedCronJobCreateUpdateHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
+	klog.Info("Handle AdvancedCronJob Validating", "version", req.AdmissionRequest.Resource.Version)
+
 	obj := &appsv1beta1.AdvancedCronJob{}
 
 	err := h.decodeAdvancedCronJob(req, obj)
