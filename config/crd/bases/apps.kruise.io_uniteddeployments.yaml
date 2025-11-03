@@ -688,7 +688,10 @@ spec:
                               disablePVCReuse:
                                 description: |-
                                   Indicate if cloneSet will reuse already existed pvc to
-                                  rebuild a new pod
+                                  rebuild a new pod.
+                                  Default is false for v1alpha1 (backward compatibility).
+                                  Note: omitempty is removed to ensure the field is always serialized,
+                                  preventing v1beta1 CRD default from being applied during conversion.
                                 type: boolean
                               excludePreparingDelete:
                                 description: |-
@@ -712,6 +715,8 @@ spec:
                                 items:
                                   type: string
                                 type: array
+                            required:
+                            - disablePVCReuse
                             type: object
                           selector:
                             description: |-
