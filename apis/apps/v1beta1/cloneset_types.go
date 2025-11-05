@@ -99,7 +99,7 @@ type CloneSetScaleStrategy struct {
 	// preventing CRD default from overriding values converted from v1alpha1.
 	// +optional
 	// +kubebuilder:default=true
-	DisablePVCReuse bool `json:"disablePVCReuse"`
+	DisablePVCReuse bool `json:"disablePVCReuse,omitempty"`
 
 	// ExcludePreparingDelete indicates whether the CloneSet should calculate scale number excluding Pods in PreparingDelete state.
 	// Default is false.
