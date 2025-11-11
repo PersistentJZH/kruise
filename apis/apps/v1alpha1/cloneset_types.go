@@ -107,7 +107,7 @@ type CloneSetScaleStrategy struct {
 	// Note: omitempty is removed to ensure the field is always serialized,
 	// preventing v1beta1 CRD default from being applied during conversion.
 	// +kubebuilder:default=false
-	DisablePVCReuse bool `json:"disablePVCReuse,omitempty"`
+	DisablePVCReuse bool `json:"disablePVCReuse"`
 
 	// ExcludePreparingDelete indicates whether the CloneSet should calculate scale number excluding Pods in PreparingDelete state.
 	// Default is false.

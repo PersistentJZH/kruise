@@ -255,11 +255,11 @@ func DoItSlowly(count int, initialBatchSize int, fn func() error) (int, error) {
 	return successes, nil
 }
 
-func HasProgressDeadline(cs *appsv1alpha1.CloneSet) bool {
+func HasProgressDeadline(cs *appsv1beta1.CloneSet) bool {
 	return cs.Spec.ProgressDeadlineSeconds != nil && *cs.Spec.ProgressDeadlineSeconds != math.MaxInt32
 }
 
-func GetCloneSetCondition(status appsv1alpha1.CloneSetStatus, condType appsv1alpha1.CloneSetConditionType) *appsv1alpha1.CloneSetCondition {
+func GetCloneSetCondition(status appsv1beta1.CloneSetStatus, condType appsv1beta1.CloneSetConditionType) *appsv1beta1.CloneSetCondition {
 	for i := range status.Conditions {
 		c := status.Conditions[i]
 		if c.Type == condType {
@@ -269,9 +269,9 @@ func GetCloneSetCondition(status appsv1alpha1.CloneSetStatus, condType appsv1alp
 	return nil
 }
 
-func NewCloneSetCondition(condType appsv1alpha1.CloneSetConditionType, status v1.ConditionStatus,
-	reason appsv1alpha1.CloneSetConditionReason, message string, now time.Time) *appsv1alpha1.CloneSetCondition {
-	return &appsv1alpha1.CloneSetCondition{
+func NewCloneSetCondition(condType appsv1beta1.CloneSetConditionType, status v1.ConditionStatus,
+	reason appsv1beta1.CloneSetConditionReason, message string, now time.Time) *appsv1beta1.CloneSetCondition {
+	return &appsv1beta1.CloneSetCondition{
 		Type:               condType,
 		Status:             status,
 		LastUpdateTime:     metav1.NewTime(now),
@@ -281,7 +281,7 @@ func NewCloneSetCondition(condType appsv1alpha1.CloneSetConditionType, status v1
 	}
 }
 
-func SetCloneSetCondition(status *appsv1alpha1.CloneSetStatus, condition appsv1alpha1.CloneSetCondition) {
+func SetCloneSetCondition(status *appsv1beta1.CloneSetStatus, condition appsv1beta1.CloneSetCondition) {
 	currentCond := GetCloneSetCondition(*status, condition.Type)
 	if currentCond != nil && currentCond.Status == condition.Status && currentCond.Reason == condition.Reason {
 		return
@@ -295,15 +295,15 @@ func SetCloneSetCondition(status *appsv1alpha1.CloneSetStatus, condition appsv1a
 	status.Conditions = append(newConditions, condition)
 }
 
-func RemoveCloneSetCondition(status *appsv1alpha1.CloneSetStatus, condType appsv1alpha1.CloneSetConditionType) {
+func RemoveCloneSetCondition(status *appsv1beta1.CloneSetStatus, condType appsv1beta1.CloneSetConditionType) {
 	if status == nil {
 		return
 	}
 	status.Conditions = filterOutCondition(status.Conditions, condType)
 }
 
-func filterOutCondition(conditions []appsv1alpha1.CloneSetCondition, condType appsv1alpha1.CloneSetConditionType) []appsv1alpha1.CloneSetCondition {
-	var newConditions []appsv1alpha1.CloneSetCondition
+func filterOutCondition(conditions []appsv1beta1.CloneSetCondition, condType appsv1beta1.CloneSetConditionType) []appsv1beta1.CloneSetCondition {
+	var newConditions []appsv1beta1.CloneSetCondition
 
 	for _, c := range conditions {
 		if c.Type == condType {
@@ -315,14 +315,14 @@ func filterOutCondition(conditions []appsv1alpha1.CloneSetCondition, condType ap
 	return newConditions
 }
 
-func CloneSetAvailable(cs *appsv1alpha1.CloneSet, newStatus *appsv1alpha1.CloneSetStatus) bool {
+func CloneSetAvailable(cs *appsv1beta1.CloneSet, newStatus *appsv1beta1.CloneSetStatus) bool {
 	return newStatus.CurrentRevision == newStatus.UpdateRevision &&
 		newStatus.Replicas == *(cs.Spec.Replicas) &&
 		newStatus.UpdatedReplicas == *(cs.Spec.Replicas) &&
 		newStatus.UpdatedAvailableReplicas == *(cs.Spec.Replicas)
 }
 
-func CloneSetPartitionAvailable(cs *appsv1alpha1.CloneSet, newStatus *appsv1alpha1.CloneSetStatus) bool {
+func CloneSetPartitionAvailable(cs *appsv1beta1.CloneSet, newStatus *appsv1beta1.CloneSetStatus) bool {
 	// newStatus.ExpectedUpdatedReplicas < cs.Spec.Replicas indicates the user has configured the partition field.
 	// and, if newStatus.ExpectedUpdatedReplicas <= newStatus.UpdatedAvailableReplicas, it indicates the PartitionAvailable phase has been reached.
 	replicas := cs.Spec.Replicas
@@ -332,21 +332,21 @@ func CloneSetPartitionAvailable(cs *appsv1alpha1.CloneSet, newStatus *appsv1alph
 	return newStatus.ExpectedUpdatedReplicas < *replicas && newStatus.ExpectedUpdatedReplicas <= newStatus.UpdatedAvailableReplicas
 }
 
-func CloneSetBePaused(cs *appsv1alpha1.CloneSet) bool {
+func CloneSetBePaused(cs *appsv1beta1.CloneSet) bool {
 	return cs.Spec.UpdateStrategy.Paused
 }
 
-func CloneSetProgressing(cs *appsv1alpha1.CloneSet, newStatus *appsv1alpha1.CloneSetStatus) bool {
+func CloneSetProgressing(cs *appsv1beta1.CloneSet, newStatus *appsv1beta1.CloneSetStatus) bool {
 	if cs.Spec.UpdateStrategy.Paused {
 		return false
 	}
 
-	condition := GetCloneSetCondition(cs.Status, appsv1alpha1.CloneSetConditionTypeProgressing)
+	condition := GetCloneSetCondition(cs.Status, appsv1beta1.CloneSetConditionTypeProgressing)
 	if condition == nil {
 		return true
 	}
 
-	if !cs.Spec.UpdateStrategy.Paused && condition.Reason == string(appsv1alpha1.CloneSetProgressPaused) {
+	if !cs.Spec.UpdateStrategy.Paused && condition.Reason == string(appsv1beta1.CloneSetProgressPaused) {
 		return true
 	}
 
@@ -356,11 +356,11 @@ func CloneSetProgressing(cs *appsv1alpha1.CloneSet, newStatus *appsv1alpha1.Clon
 		newStatus.AvailableReplicas > cs.Status.AvailableReplicas
 }
 
-func CloneSetDeadlineExceeded(cs *appsv1alpha1.CloneSet, newStatus *appsv1alpha1.CloneSetStatus, now time.Time) bool {
-	condition := GetCloneSetCondition(*newStatus, appsv1alpha1.CloneSetConditionTypeProgressing)
+func CloneSetDeadlineExceeded(cs *appsv1beta1.CloneSet, newStatus *appsv1beta1.CloneSetStatus, now time.Time) bool {
+	condition := GetCloneSetCondition(*newStatus, appsv1beta1.CloneSetConditionTypeProgressing)
 	if condition == nil {
 		return false
-	} else if condition.Reason == string(appsv1alpha1.CloneSetProgressDeadlineExceeded) {
+	} else if condition.Reason == string(appsv1beta1.CloneSetProgressDeadlineExceeded) {
 		return true
 	}
 	return condition.LastUpdateTime.Add(time.Duration(*cs.Spec.ProgressDeadlineSeconds) * time.Second).Before(now)

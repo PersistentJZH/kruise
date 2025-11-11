@@ -32,7 +32,6 @@ import (
 	appspub "github.com/openkruise/kruise/apis/apps/pub"
 	appsv1alpha1 "github.com/openkruise/kruise/apis/apps/v1alpha1"
 	kruiseclientset "github.com/openkruise/kruise/pkg/client/clientset/versioned"
-	clonesetutils "github.com/openkruise/kruise/pkg/controller/cloneset/utils"
 	"github.com/openkruise/kruise/pkg/util"
 )
 
@@ -227,7 +226,14 @@ func (t *CloneSetTester) GetCloneSetCondition(name string, conditionType appsv1a
 		return nil, err
 	}
 	klog.Infof("cloneset(%s/%s) status(%s)", cs.Namespace, cs.Name, util.DumpJSON(cs.Status))
-	return clonesetutils.GetCloneSetCondition(cs.Status, conditionType), nil
+
+	for i := range cs.Status.Conditions {
+		c := cs.Status.Conditions[i]
+		if c.Type == conditionType {
+			return &c, nil
+		}
+	}
+	return nil, nil
 }
 
 func (t *CloneSetTester) NewCloneSetAvailableCondition() *appsv1alpha1.CloneSetCondition {

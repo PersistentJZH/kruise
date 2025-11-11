@@ -31,6 +31,10 @@ const (
 
 	// DefaultCloneSetMaxUnavailable is the default value of maxUnavailable for CloneSet update strategy.
 	DefaultCloneSetMaxUnavailable = "20%"
+
+	// CloneSetScalingExcludePreparingDeleteKey is the label key that enables scalingExcludePreparingDelete
+	// only for this CloneSet, which means it will calculate scale number excluding Pods in PreparingDelete state.
+	CloneSetScalingExcludePreparingDeleteKey = "apps.kruise.io/cloneset-scaling-exclude-preparing-delete"
 )
 
 // CloneSetSpec defines the desired state of CloneSet
@@ -78,6 +82,12 @@ type CloneSetSpec struct {
 
 	// Lifecycle defines the lifecycle hooks for Pods pre-available(pre-normal), pre-delete, in-place update.
 	Lifecycle *appspub.Lifecycle `json:"lifecycle,omitempty"`
+
+	// ProgressDeadlineSeconds specifies the maximum time for the CloneSet to reach available
+	// or paused state due to partitioning. The controller will set a ProgressDeadlineExceeded
+	// condition when timeout occurs, while excluding paused state duration from the deadline calculation.
+	// This field is optional. If not set, the controller will not track progress deadlines or add the condition.
+	ProgressDeadlineSeconds *int32 `json:"progressDeadlineSeconds,omitempty"`
 }
 
 // CloneSetScaleStrategy defines strategies for pods scale.
@@ -216,6 +226,22 @@ type CloneSetStatus struct {
 	LabelSelector string `json:"labelSelector,omitempty"`
 }
 
+// CloneSetConditionReason is type for CloneSet reasons.
+type CloneSetConditionReason string
+
+const (
+	// CloneSetProgressDeadlineExceeded is added in a cloneset when it fails to show any progress within the given deadline.
+	CloneSetProgressDeadlineExceeded CloneSetConditionReason = "ProgressDeadlineExceeded"
+	// CloneSetProgressPaused is added in a cloneset when it is paused.
+	CloneSetProgressPaused CloneSetConditionReason = "CloneSetPaused"
+	// CloneSetProgressUpdated is added in a cloneset when it is updated.
+	CloneSetProgressUpdated CloneSetConditionReason = "CloneSetUpdated"
+	// CloneSetProgressPartitionAvailable is added in a cloneset when paused due to partition.
+	CloneSetProgressPartitionAvailable CloneSetConditionReason = "ProgressPartitionAvailable"
+	// CloneSetAvailable is added in a cloneset when it is available.
+	CloneSetAvailable CloneSetConditionReason = "CloneSetAvailable"
+)
+
 // CloneSetConditionType is type for CloneSet conditions.
 type CloneSetConditionType string
 
@@ -224,6 +250,8 @@ const (
 	CloneSetConditionFailedScale CloneSetConditionType = "FailedScale"
 	// CloneSetConditionFailedUpdate indicates cloneset controller failed to update pods.
 	CloneSetConditionFailedUpdate CloneSetConditionType = "FailedUpdate"
+	// CloneSetConditionTypeProgressing indicates cloneset controller is progressing.
+	CloneSetConditionTypeProgressing CloneSetConditionType = "Progressing"
 )
 
 // CloneSetCondition describes the state of a CloneSet at a certain point.
@@ -232,6 +260,8 @@ type CloneSetCondition struct {
 	Type CloneSetConditionType `json:"type"`
 	// Status of the condition, one of True, False, Unknown.
 	Status v1.ConditionStatus `json:"status"`
+	// Last time the condition is updated.
+	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
 	// Last time the condition transitioned from one status to another.
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 	// The reason for the condition's last transition.

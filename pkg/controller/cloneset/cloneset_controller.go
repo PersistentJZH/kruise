@@ -296,7 +296,7 @@ func (r *ReconcileCloneSet) doReconcile(request reconcile.Request) (res reconcil
 		}
 	}
 
-	//release Pods ownerRef
+	// release Pods ownerRef
 	filteredPods, err = r.claimPods(instance, filteredPods)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -421,8 +421,8 @@ func (r *ReconcileCloneSet) syncCloneSet(
 
 	scaling, podsScaleErr = r.syncControl.Scale(currentSet, updateSet, currentRevision.Name, updateRevision.Name, filteredPods, filteredPVCs)
 	if podsScaleErr != nil {
-		cond := appsv1alpha1.CloneSetCondition{
-			Type:               appsv1alpha1.CloneSetConditionFailedScale,
+		cond := appsv1beta1.CloneSetCondition{
+			Type:               appsv1beta1.CloneSetConditionFailedScale,
 			Status:             v1.ConditionTrue,
 			LastTransitionTime: metav1.Now(),
 			Message:            podsScaleErr.Error(),
@@ -436,8 +436,8 @@ func (r *ReconcileCloneSet) syncCloneSet(
 
 	podsUpdateErr = r.syncControl.Update(updateSet, currentRevision, updateRevision, revisions, filteredPods, filteredPVCs)
 	if podsUpdateErr != nil {
-		cond := appsv1alpha1.CloneSetCondition{
-			Type:               appsv1alpha1.CloneSetConditionFailedUpdate,
+		cond := appsv1beta1.CloneSetCondition{
+			Type:               appsv1beta1.CloneSetConditionFailedUpdate,
 			Status:             v1.ConditionTrue,
 			LastTransitionTime: metav1.Now(),
 			Message:            podsUpdateErr.Error(),
@@ -503,7 +503,7 @@ func (r *ReconcileCloneSet) getActiveRevisions(cs *appsv1beta1.CloneSet, revisio
 			return nil, nil, collisionCount, err
 		}
 	} else {
-		//if there is no equivalent revision we create a new one
+		// if there is no equivalent revision we create a new one
 		updateRevision, err = r.controllerHistory.CreateControllerRevision(cs, updateRevision, &collisionCount)
 		if err != nil {
 			return nil, nil, collisionCount, err

@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kruise Authors.
+Copyright 2025 The Kruise Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
 	v1 "k8s.io/api/core/v1"
@@ -25,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/klog/v2"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
 	appspub "github.com/openkruise/kruise/apis/apps/pub"
@@ -200,4 +202,81 @@ func (t *CloneSetTester) GetSelectorPods(namespace string, selector *metav1.Labe
 
 func (t *CloneSetTester) DeletePod(name string) error {
 	return t.c.CoreV1().Pods(t.ns).Delete(context.TODO(), name, metav1.DeleteOptions{})
+}
+
+func (t *CloneSetTester) GetCloneSetProgressingCondition(name string) (*appsv1beta1.CloneSetCondition, error) {
+	return t.GetCloneSetCondition(name, appsv1beta1.CloneSetConditionTypeProgressing)
+}
+
+func (t *CloneSetTester) GetCloneSetProgressingConditionWithoutTime(name string) (*appsv1beta1.CloneSetCondition, error) {
+	condition, err := t.GetCloneSetCondition(name, appsv1beta1.CloneSetConditionTypeProgressing)
+	if err != nil {
+		return nil, err
+	}
+	if condition == nil {
+		return nil, nil
+	}
+	condition.LastTransitionTime, condition.LastUpdateTime = metav1.Time{}, metav1.Time{}
+	return condition, nil
+}
+
+func (t *CloneSetTester) GetCloneSetCondition(name string, conditionType appsv1beta1.CloneSetConditionType) (*appsv1beta1.CloneSetCondition, error) {
+	cs, err := t.kc.AppsV1beta1().CloneSets(t.ns).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	klog.Infof("cloneset(%s/%s) status(%s)", cs.Namespace, cs.Name, util.DumpJSON(cs.Status))
+
+	for i := range cs.Status.Conditions {
+		c := cs.Status.Conditions[i]
+		if c.Type == conditionType {
+			return &c, nil
+		}
+	}
+	return nil, nil
+}
+
+func (t *CloneSetTester) NewCloneSetAvailableCondition() *appsv1beta1.CloneSetCondition {
+	return &appsv1beta1.CloneSetCondition{
+		Type:    appsv1beta1.CloneSetConditionTypeProgressing,
+		Status:  v1.ConditionTrue,
+		Reason:  string(appsv1beta1.CloneSetAvailable),
+		Message: "CloneSet is available",
+	}
+}
+
+func (t *CloneSetTester) NewCloneSetUpdatedCondition() *appsv1beta1.CloneSetCondition {
+	return &appsv1beta1.CloneSetCondition{
+		Type:    appsv1beta1.CloneSetConditionTypeProgressing,
+		Status:  v1.ConditionTrue,
+		Reason:  string(appsv1beta1.CloneSetProgressUpdated),
+		Message: "CloneSet is progressing",
+	}
+}
+
+func (t *CloneSetTester) NewCloneSetDeadlineExceededCondition(revision string) *appsv1beta1.CloneSetCondition {
+	return &appsv1beta1.CloneSetCondition{
+		Type:    appsv1beta1.CloneSetConditionTypeProgressing,
+		Status:  v1.ConditionFalse,
+		Reason:  string(appsv1beta1.CloneSetProgressDeadlineExceeded),
+		Message: fmt.Sprintf("CloneSet revision %s has timed out progressing", revision),
+	}
+}
+
+func (t *CloneSetTester) NewCloneSetPausedCondition() *appsv1beta1.CloneSetCondition {
+	return &appsv1beta1.CloneSetCondition{
+		Type:    appsv1beta1.CloneSetConditionTypeProgressing,
+		Status:  v1.ConditionTrue,
+		Reason:  string(appsv1beta1.CloneSetProgressPaused),
+		Message: "CloneSet is paused",
+	}
+}
+
+func (t *CloneSetTester) NewCloneSetPartitionAvailableCondition() *appsv1beta1.CloneSetCondition {
+	return &appsv1beta1.CloneSetCondition{
+		Type:    appsv1beta1.CloneSetConditionTypeProgressing,
+		Status:  v1.ConditionTrue,
+		Reason:  string(appsv1beta1.CloneSetProgressPartitionAvailable),
+		Message: "CloneSet has been paused due to partition ready",
+	}
 }

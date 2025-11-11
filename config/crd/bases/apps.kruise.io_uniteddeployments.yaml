@@ -686,6 +686,7 @@ spec:
                               create and delete Pods in the CloneSet.
                             properties:
                               disablePVCReuse:
+                                default: false
                                 description: |-
                                   Indicate if cloneSet will reuse already existed pvc to
                                   rebuild a new pod.
